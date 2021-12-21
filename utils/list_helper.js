@@ -27,16 +27,11 @@ const favoriteBlog = (blogs) => {
 	return favoriteBlog;
 };
 
-// Returns the auther with the most blogs, like this:
-//{
-//  author: "Robert C. Martin",
-//  blogs: 3
-// }
+// Exercise 4.6 - Returns the auther with the most blogs
 const mostBlogs = (blogs) => {
 	let authorBlogs = {};
 
 	blogs.forEach((blog) => {
-		console.log(blog.author);
 		if (authorBlogs[blog.author]) {
 			authorBlogs[blog.author] += 1;
 		} else {
@@ -64,4 +59,36 @@ const mostBlogs = (blogs) => {
 	return result;
 };
 
-module.exports = { dummy, totalLikes, favoriteBlog, mostBlogs };
+// Exercise 4.7 - Returns the auther with the most likes
+const mostLikes = (blogs) => {
+	let authorLikes = {};
+
+	blogs.forEach((blog) => {
+		if (authorLikes[blog.author]) {
+			authorLikes[blog.author] += blog.likes;
+		} else {
+			authorLikes[blog.author] = blog.likes;
+		}
+	});
+
+	let arrayOfAuthors = Object.entries(authorLikes);
+
+	let max = Math.max(
+		...arrayOfAuthors.map((item) => {
+			return item[1];
+		})
+	);
+
+	let index = arrayOfAuthors.findIndex((item) => {
+		return item[1] === max;
+	});
+
+	let result = {
+		author: arrayOfAuthors[index][0],
+		likes: arrayOfAuthors[index][1],
+	};
+
+	return result;
+};
+
+module.exports = { dummy, totalLikes, favoriteBlog, mostBlogs, mostLikes };

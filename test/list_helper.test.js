@@ -132,6 +132,30 @@ describe("most blogs", () => {
 	});
 });
 
+describe("most likes", () => {
+	test("of single blog is that blogs likes and author", () => {
+		const result = listHelper.mostLikes(listWithOneBlog);
+
+		const expectedResult = {
+			author: "Edsger W. Dijkstra",
+			likes: 5,
+		};
+
+		expect(result).toEqual(expectedResult);
+	});
+
+	test("of array returns the correct answer with total likes and author", () => {
+		const result = listHelper.mostLikes(listWithSeveralBlogs);
+
+		const expectedResult = {
+			author: "Robert C. Martin",
+			likes: 24,
+		};
+
+		expect(result).toEqual(expectedResult);
+	});
+});
+
 test("dummy returns one", () => {
 	const blogs = [];
 

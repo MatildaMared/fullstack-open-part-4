@@ -76,7 +76,7 @@ test("a new blog is added correctly", async () => {
 	expect(blogIds).toContain(blogResponse.body.id);
 });
 
-test("if likes property is missing when creating new post it defaults to 0", async () => {
+test("likes property defaults to 0 if missing", async () => {
 	const newBlog = {
 		title: "My first blog",
 		author: "Matilda Mared",
@@ -90,6 +90,32 @@ test("if likes property is missing when creating new post it defaults to 0", asy
 		.expect("Content-Type", /application\/json/);
 
 	expect(blogResponse.body.likes).toBe(0);
+});
+
+test("fails with status code 400 if title is missing", async () => {
+	const newBlog = {
+		author: "Matilda Mared",
+		url: "http://url.com",
+		likes: 5,
+	};
+
+	const blogResponse = await await api
+		.post("/api/blogs")
+		.send(newBlog)
+		.expect(400);
+});
+
+test("fails with status code 400 if url is missing", async () => {
+	const newBlog = {
+		title: "My first blog post",
+		author: "Matilda Mared",
+		likes: 5,
+	};
+
+	const blogResponse = await await api
+		.post("/api/blogs")
+		.send(newBlog)
+		.expect(400);
 });
 
 afterAll(() => {

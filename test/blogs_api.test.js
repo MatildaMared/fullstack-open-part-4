@@ -40,82 +40,86 @@ beforeEach(async () => {
 	}
 });
 
-test("correct amount of blogs are returned as json", async () => {
-	const response = await api
-		.get("/api/blogs")
-		.expect(200)
-		.expect("Content-Type", /application\/json/);
+describe("viewing all blogs", () => {
+	test("correct amount of blogs are returned as json", async () => {
+		const response = await api
+			.get("/api/blogs")
+			.expect(200)
+			.expect("Content-Type", /application\/json/);
 
-	expect(response.body).toHaveLength(initialBlogs.length);
+		expect(response.body).toHaveLength(initialBlogs.length);
+	});
+
+	test("returned blogs have an id property", async () => {
+		const response = await api.get("/api/blogs");
+
+		expect(response.body[0].id).toBeDefined();
+	});
 });
 
-test("returned blogs have an id property", async () => {
-	const response = await api.get("/api/blogs");
+describe("creating a new blog", () => {
+	test("a new blog is added correctly", async () => {
+		const newBlog = {
+			title: "My first blog",
+			author: "Matilda Mared",
+			url: "http://url.com",
+			likes: 10,
+		};
 
-	expect(response.body[0].id).toBeDefined();
-});
+		const blogResponse = await await api
+			.post("/api/blogs")
+			.send(newBlog)
+			.expect(201)
+			.expect("Content-Type", /application\/json/);
 
-test("a new blog is added correctly", async () => {
-	const newBlog = {
-		title: "My first blog",
-		author: "Matilda Mared",
-		url: "http://url.com",
-		likes: 10,
-	};
+		const allBlogs = await api.get("/api/blogs");
+		expect(allBlogs.body).toHaveLength(initialBlogs.length + 1);
 
-	const blogResponse = await await api
-		.post("/api/blogs")
-		.send(newBlog)
-		.expect(201)
-		.expect("Content-Type", /application\/json/);
+		const blogIds = allBlogs.body.map((blog) => blog.id);
+		expect(blogIds).toContain(blogResponse.body.id);
+	});
 
-	const allBlogs = await api.get("/api/blogs");
-	expect(allBlogs.body).toHaveLength(initialBlogs.length + 1);
+	test("likes property defaults to 0 if missing", async () => {
+		const newBlog = {
+			title: "My first blog",
+			author: "Matilda Mared",
+			url: "http://url.com",
+		};
 
-	const blogIds = allBlogs.body.map((blog) => blog.id);
-	expect(blogIds).toContain(blogResponse.body.id);
-});
+		const blogResponse = await await api
+			.post("/api/blogs")
+			.send(newBlog)
+			.expect(201)
+			.expect("Content-Type", /application\/json/);
 
-test("likes property defaults to 0 if missing", async () => {
-	const newBlog = {
-		title: "My first blog",
-		author: "Matilda Mared",
-		url: "http://url.com",
-	};
+		expect(blogResponse.body.likes).toBe(0);
+	});
 
-	const blogResponse = await await api
-		.post("/api/blogs")
-		.send(newBlog)
-		.expect(201)
-		.expect("Content-Type", /application\/json/);
+	test("fails with status code 400 if title is missing", async () => {
+		const newBlog = {
+			author: "Matilda Mared",
+			url: "http://url.com",
+			likes: 5,
+		};
 
-	expect(blogResponse.body.likes).toBe(0);
-});
+		const blogResponse = await await api
+			.post("/api/blogs")
+			.send(newBlog)
+			.expect(400);
+	});
 
-test("fails with status code 400 if title is missing", async () => {
-	const newBlog = {
-		author: "Matilda Mared",
-		url: "http://url.com",
-		likes: 5,
-	};
+	test("fails with status code 400 if url is missing", async () => {
+		const newBlog = {
+			title: "My first blog post",
+			author: "Matilda Mared",
+			likes: 5,
+		};
 
-	const blogResponse = await await api
-		.post("/api/blogs")
-		.send(newBlog)
-		.expect(400);
-});
-
-test("fails with status code 400 if url is missing", async () => {
-	const newBlog = {
-		title: "My first blog post",
-		author: "Matilda Mared",
-		likes: 5,
-	};
-
-	const blogResponse = await await api
-		.post("/api/blogs")
-		.send(newBlog)
-		.expect(400);
+		const blogResponse = await await api
+			.post("/api/blogs")
+			.send(newBlog)
+			.expect(400);
+	});
 });
 
 describe("removing a blog", () => {
@@ -127,6 +131,27 @@ describe("removing a blog", () => {
 
 		const blogsAfterDeleting = await api.get("/api/blogs");
 		expect(blogsAfterDeleting.body).toHaveLength(initialBlogs.length - 1);
+	});
+});
+
+describe("updating a blog", () => {
+	test("succeeds with status code 200 if the id is valid", async () => {
+		const allBlogs = await api.get("/api/blogs");
+		const blogToUpdate = allBlogs.body[0];
+
+		const newBlog = {
+			title: "Updated title",
+			likes: 25,
+		};
+
+		const updatedBlog = await api
+			.put(`/api/blogs/${blogToUpdate.id}`)
+			.send(newBlog)
+			.expect(200);
+
+		const updatedBlogs = await api.get("/api/blogs");
+		expect(updatedBlogs.body[0].title).toEqual(newBlog.title);
+		expect(updatedBlogs.body[0].likes).toEqual(newBlog.likes);
 	});
 });
 

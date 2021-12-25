@@ -118,6 +118,18 @@ test("fails with status code 400 if url is missing", async () => {
 		.expect(400);
 });
 
+describe("removing a blog", () => {
+	test("succeeds with status code 204 if the id is valid", async () => {
+		const allBlogs = await api.get("/api/blogs");
+		const blogToDelete = allBlogs.body[0];
+
+		await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204);
+
+		const blogsAfterDeleting = await api.get("/api/blogs");
+		expect(blogsAfterDeleting.body).toHaveLength(initialBlogs.length - 1);
+	});
+});
+
 afterAll(() => {
 	mongoose.connection.close();
 });

@@ -41,7 +41,8 @@ blogsRouter.post("/", async (request, response, next) => {
 			return response.status(401).json({ error: "token missing or invalid" });
 		}
 
-		const user = await User.findById(decodedToken.id);
+		// const user = await User.findById(decodedToken.id);
+		const user = request.user;
 
 		const blog = new Blog({
 			title: body.title,
@@ -73,7 +74,9 @@ blogsRouter.delete("/:id", async (request, response, next) => {
 		const id = request.params.id;
 		const blogToDelete = await Blog.findById(id);
 
-		if (blogToDelete.user.toString() === decodedToken.id.toString()) {
+		const user = request.user;
+
+		if (blogToDelete.user.toString() === user.id.toString()) {
 			await Blog.findByIdAndRemove(id);
 			response.status(204).end();
 		} else {
@@ -87,20 +90,38 @@ blogsRouter.delete("/:id", async (request, response, next) => {
 });
 
 blogsRouter.put("/:id", async (request, response, next) => {
-	const blogToUpdate = await Blog.findById(request.params.id);
-
-	const blog = {
-		title: request.body.title || blogToUpdate.title,
-		author: request.body.author || blogToUpdate.author,
-		url: request.body.url || blogToUpdate.url,
-		likes: request.body.likes || blogToUpdate.likes,
-	};
-
 	try {
-		const updatedBlog = await Blog.findByIdAndUpdate(request.params.id, blog, {
-			new: true,
-		});
-		response.json(updatedBlog);
+		const token = request.token;
+		const decodedToken = jwt.verify(token, process.env.SECRET);
+
+		if (!token || !decodedToken.id) {
+			return response.status(401).json({ error: "token missing or invalid" });
+		}
+
+		const blogToUpdate = await Blog.findById(request.params.id);
+		const user = request.user;
+
+		const blog = {
+			title: request.body.title || blogToUpdate.title,
+			author: request.body.author || blogToUpdate.author,
+			url: request.body.url || blogToUpdate.url,
+			likes: request.body.likes || blogToUpdate.likes,
+		};
+
+		if (blogToUpdate.user.toString() === user.id.toString()) {
+			const updatedBlog = await Blog.findByIdAndUpdate(
+				request.params.id,
+				blog,
+				{
+					new: true,
+				}
+			);
+			response.json(updatedBlog);
+		} else {
+			response.status(401).json({
+				error: "you are not authorized to update this blog",
+			});
+		}
 	} catch (exception) {
 		next(exception);
 	}

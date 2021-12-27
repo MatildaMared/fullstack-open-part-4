@@ -3,13 +3,13 @@ const Blog = require("../models/blog");
 const User = require("../models/user");
 const jwt = require("jsonwebtoken");
 
-const getTokenFrom = (request) => {
-	const authorization = request.get("authorization");
-	if (authorization && authorization.toLowerCase().startsWith("bearer ")) {
-		return authorization.substring(7);
-	}
-	return null;
-};
+// const getTokenFrom = (request) => {
+// 	const authorization = request.get("authorization");
+// 	if (authorization && authorization.toLowerCase().startsWith("bearer ")) {
+// 		return authorization.substring(7);
+// 	}
+// 	return null;
+// };
 
 blogsRouter.get("/", async (request, response) => {
 	try {
@@ -31,7 +31,10 @@ blogsRouter.post("/", async (request, response, next) => {
 			return response.status(400).end();
 		}
 
-		const token = getTokenFrom(request);
+		// const token = getTokenFrom(request);
+		// const decodedToken = jwt.verify(token, process.env.SECRET);
+
+		const token = request.token;
 		const decodedToken = jwt.verify(token, process.env.SECRET);
 
 		if (!token || !decodedToken.id) {

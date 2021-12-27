@@ -34,6 +34,19 @@ const initialBlogs = [
 	},
 ];
 
+beforeAll(async () => {
+	await User.deleteMany({});
+	const user = {
+		username: "matilda",
+		name: "Matilda Mared",
+		password: "test1234",
+	};
+
+	await api.post("/api/users").send(user);
+	// .set("Accept", "application/json")
+	// .expect("Content-Type", /application\/json/);
+});
+
 beforeEach(async () => {
 	await Blog.deleteMany({});
 
@@ -61,6 +74,22 @@ describe("viewing all blogs", () => {
 });
 
 describe("creating a new blog", () => {
+	let token = "";
+
+	beforeEach(async () => {
+		const credentials = {
+			username: "matilda",
+			password: "test1234",
+		};
+
+		const loggedInUser = await api
+			.post("/api/login")
+			.send(credentials)
+			.expect("Content-Type", /application\/json/);
+
+		token = loggedInUser.body.token;
+	});
+
 	test("a new blog is added correctly", async () => {
 		const newBlog = {
 			title: "My first blog",
@@ -72,6 +101,7 @@ describe("creating a new blog", () => {
 		const blogResponse = await await api
 			.post("/api/blogs")
 			.send(newBlog)
+			.set("Authorization", `bearer ${token}`)
 			.expect(201)
 			.expect("Content-Type", /application\/json/);
 
@@ -92,6 +122,7 @@ describe("creating a new blog", () => {
 		const blogResponse = await await api
 			.post("/api/blogs")
 			.send(newBlog)
+			.set("Authorization", `bearer ${token}`)
 			.expect(201)
 			.expect("Content-Type", /application\/json/);
 
@@ -108,6 +139,7 @@ describe("creating a new blog", () => {
 		const blogResponse = await await api
 			.post("/api/blogs")
 			.send(newBlog)
+			.set("Authorization", `bearer ${token}`)
 			.expect(400);
 	});
 
@@ -121,40 +153,117 @@ describe("creating a new blog", () => {
 		const blogResponse = await await api
 			.post("/api/blogs")
 			.send(newBlog)
+			.set("Authorization", `bearer ${token}`)
 			.expect(400);
+	});
+
+	test("fails with status code 401 if token is missing", async () => {
+		const newBlog = {
+			title: "My first blog post",
+			author: "Matilda Mared",
+			url: "http://url.com",
+			likes: 5,
+		};
+
+		const blogResponse = await await api
+			.post("/api/blogs")
+			.send(newBlog)
+			.expect(401);
 	});
 });
 
 describe("removing a blog", () => {
+	let blogToDeleteId = "";
+	let token = "";
+
+	beforeEach(async () => {
+		const credentials = {
+			username: "matilda",
+			password: "test1234",
+		};
+
+		const loggedInUser = await api
+			.post("/api/login")
+			.send(credentials)
+			.expect("Content-Type", /application\/json/);
+
+		token = loggedInUser.body.token;
+
+		const blogToDelete = {
+			title: "Test title",
+			author: "Test author",
+			url: "http://url.com",
+		};
+
+		const createdBlog = await await api
+			.post("/api/blogs")
+			.send(blogToDelete)
+			.set("Authorization", `bearer ${token}`)
+			.expect(201);
+
+		blogToDeleteId = createdBlog.body.id;
+	});
+
 	test("succeeds with status code 204 if the id is valid", async () => {
 		const allBlogs = await api.get("/api/blogs");
-		const blogToDelete = allBlogs.body[0];
 
-		await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204);
+		await api
+			.delete(`/api/blogs/${blogToDeleteId}`)
+			.set("Authorization", `bearer ${token}`)
+			.expect(204);
 
 		const blogsAfterDeleting = await api.get("/api/blogs");
-		expect(blogsAfterDeleting.body).toHaveLength(initialBlogs.length - 1);
+		expect(blogsAfterDeleting.body).toHaveLength(allBlogs.body.length - 1);
 	});
 });
 
 describe("updating a blog", () => {
-	test("succeeds with status code 200 if the id is valid", async () => {
-		const allBlogs = await api.get("/api/blogs");
-		const blogToUpdate = allBlogs.body[0];
+	let token = "";
+	let blogToUpdateId = "";
 
-		const newBlog = {
+	beforeEach(async () => {
+		const credentials = {
+			username: "matilda",
+			password: "test1234",
+		};
+
+		const loggedInUser = await api
+			.post("/api/login")
+			.send(credentials)
+			.expect("Content-Type", /application\/json/);
+
+		token = loggedInUser.body.token;
+
+		const blogToUpdate = {
+			title: "Test title",
+			author: "Test author",
+			url: "http://url.com",
+		};
+
+		const createdBlog = await await api
+			.post("/api/blogs")
+			.send(blogToUpdate)
+			.set("Authorization", `bearer ${token}`)
+			.expect(201);
+
+		blogToUpdateId = createdBlog.body.id;
+	});
+
+	test("succeeds with status code 200 if the id is valid", async () => {
+		const updated = {
 			title: "Updated title",
 			likes: 25,
 		};
 
 		const updatedBlog = await api
-			.put(`/api/blogs/${blogToUpdate.id}`)
-			.send(newBlog)
+			.put(`/api/blogs/${blogToUpdateId}`)
+			.send(updated)
+			.set("Authorization", `bearer ${token}`)
 			.expect(200);
 
-		const updatedBlogs = await api.get("/api/blogs");
-		expect(updatedBlogs.body[0].title).toEqual(newBlog.title);
-		expect(updatedBlogs.body[0].likes).toEqual(newBlog.likes);
+		const updatedBlogFromDb = await api.get(`/api/blogs/${blogToUpdateId}`);
+		expect(updatedBlogFromDb.body.title).toEqual(updated.title);
+		expect(updatedBlogFromDb.body.likes).toEqual(updated.likes);
 	});
 });
 
